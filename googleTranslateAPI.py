@@ -56,7 +56,8 @@ def translateText(text, language):
 
 
     response, body = http.request(url,"GET")
-    print body
+    print type(body)
+    print type(response)
 
     try:
         parsed_body = json.loads(body)

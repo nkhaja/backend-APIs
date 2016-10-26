@@ -1,10 +1,19 @@
 from flask import Flask, request, jsonify, json
+from flask_pymongo import PyMongo
+from pymongo import MongoClient
+
+client = MongoClient()
+db = client.database
+collection = db.collection
 
 app = Flask(__name__)
 petDict = {}
+@app.route('/hello')
+@app.route("/hello/<name>")
+def hello(name=None):
+    if name != None:
+        return 'Hello, ' + name + '!'
 
-@app.route("/hello", methods=['GET', 'POST'])
-def hello():
     return "Hello World!"
 
 
@@ -16,21 +25,39 @@ def storePets():
     jsonResponse = jsonify(result)
 
     if request.method == 'POST':
+        # args = request.args
+        # print(args)
+        # print(type(args))
         try:
             name = dic["name"]
             age = dic["age"]
             species = dic["species"]
-            storage.append(dic)
+
         except KeyError:
             return jsonify({"error": "400 Error, you are missing one of name, age, or species"})
 
-        return jsonResponse
+
+        for pet in storage:
+            if pet["name"] == dic["name"]:
+                return jsonify({"error": "409 -- there is already a pet stored with this name"})
+            else:
+                return jsonResponse
 
     else:
         return jsonify(storage)
 
-@app.route("/pets/<name>", methods=['GET'])
+    collection_id = collection.insert_one(dic).inserted_id
+    storage.append(dic)
+    db.collection_names(include_system_collections=False)
+    print(collection.find_one())
+    return jsonResponse
+
+
+
+
+@app.route("/pets/<name>", methods=['GET', 'PUT'])
 def findPet(name):
+
     for pet in storage:
         print pet["name"]
         if pet["name"] == name:
