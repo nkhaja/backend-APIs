@@ -37,13 +37,15 @@ text = 'text'
 
 ## Errors
 
-te400 = {"error": "400 Error, you are missing a _id, user_id, list_id or text field"}
-te404 = {'error':'404 No task with given id found, or no id given'}
+te400 = {"error": "400 -- Error, you are missing a _id, user_id, list_id or text field"}
+te404 = {'error':'404 -- No task with given id found, or no id given'}
 te409 = {"error": "409 -- there is already a task stored with this id"}
-le400 = {"error": "400 Error, you are missing a _id, user_id, or title field"}
-le404 = {'error':'404 No task with given id found, or no task given'}
+le400 = {"error": "400 -- Error, you are missing a _id, user_id, or title field"}
+le404 = {'error':'404 -- No list with given id found, or no list given'}
 le409 = {"error": "409 -- there is already a list stored with this name"}
-
+ue400 = {"error": "400 -- Error, you are missing an _id, phone_number, or name"}
+ue404 = {'error':'404 -- No user with given id found, or no user given'}
+ue409 = {"error": "409 -- there is already a user with this name"}
 
 
 app = Flask(__name__)
@@ -80,6 +82,14 @@ def addTask(taskDic):
     else:
         raise ValueError
 
+def updateTask(task_id, newTask):
+    task = allTasks.find_one({selfId:someTaskId})
+    if task:
+        allTasks.update_one({selfId:someTaskId}, {'$set':newTask})
+        return task
+    else:
+        return te404
+
 def validTaskDic(taskDic):
     try:
         id = tasksDic[selfId]
@@ -110,8 +120,7 @@ def validUserDic(userDic):
         raise KeyError
 
 
-def updateTask(task_id, newTask):
-    allTasks.update_one({selfId:someTaskId}, {'$set':newTask})
+
 
 def addList(listDic):
     if allLists.find_one(listDic[selfId]) == None:
@@ -132,6 +141,7 @@ def updateListWithId(someListId, updatedList):
     checkForList = allLists.find_one({selfId:someListId})
     if checkForList:
         allLists.update_one({selfId:someListId}, {'$set':updatedList})
+        return updatedList
     else:
         return le404
 
@@ -167,11 +177,27 @@ def getTasksForUser(someUserId):
     else:
         return []
 
+
 def createUser(userDic):
-    if allUsers.find_one(userDic[selfId]) == None:
+    if allUsers.find_one(name:userDic[name]) == None:
         return allUsers.insert_one(userDic).inserted_id
     else:
         raise ValueError
+
+def getUserWithId(someUserId):
+    user = allUsers.find_one({selfId:someUserId})
+    if user:
+        return user
+    else:
+        return ue404
+
+def getUserWithName(someUserName):
+    user = allUsers.find_one({selfId:someUserId})
+    if user:
+        return user
+    else:
+        return ue404
+
 
 def deleteUser(someUserId):
     allUsers.delete_one({selfId:someUserId})
@@ -180,7 +206,15 @@ def deleteUser(someUserId):
 
 # id in newUserDic must much someUserId
 def updateUser(someUserId, updatedUserDic):
-    allUsers.update_one({selfId:someUserId}, {'$set':updatedUserDic})
+    theUser = allUsers.find_one({selfId:someUserId})
+    if theUser:
+        allUsers.update_one({selfId:someUserId}, {'$set':updatedUserDic})
+        return updatedUserDic
+    else:
+        return ue404
+
+
+
 
 
 
@@ -195,9 +229,10 @@ def index(item=None):
         return "Welcome!"
 
 #Look into how UID affects this process
-@app.route('/tasks', methods = 'GET', 'POST')
+@app.route('/tasks', methods = ['GET', 'POST'])
 def manageAllTasks():
     requestAsDic = request.form.to_dict()
+    requestAsDic[completed] = False
     GET = request.method == 'GET'
     POST = request.method == 'POST'
 
@@ -211,12 +246,12 @@ def manageAllTasks():
             #user must update local object with this id
             return addedTaskId
         except KeyError:
-            return jsonify({"error": "400 Error, you are missing one of name, age, or species"})
+            return jsonify(te400)
         except ValueError
             return jsonify(te409)
 
 
-@app.route('/tasks/<someTaskId>', methods = 'GET', 'DELETE'):
+@app.route('/tasks/<someTaskId>', methods = ['GET', 'DELETE']):
 def manageSpecificTask(someTaskId=None):
     GET = request.method == 'GET'
     DELETE = request.method == 'DELETE'
@@ -230,7 +265,7 @@ def manageSpecificTask(someTaskId=None):
         return jsonify(te404)
 
 
-@app.route('/lists', methods = 'GET', 'POST'):
+@app.route('/lists', methods = ['GET', 'POST']):
 def manageAllLists():
     requestAsDic = request.form.to_dict()
     GET = request.method == 'GET'
@@ -251,7 +286,7 @@ def manageAllLists():
         except ValueError
             return jsonify(le404)
 
-@app.route('/lists/<someListId>', methods = 'GET', 'PUT', 'DELETE'):
+@app.route('/lists/<someListId>', methods = ['GET', 'PUT', 'DELETE']):
 def manageSpecificList(someListId=None):
     requestAsDic = request.form.to_dict()
     GET = request.method == 'GET'
@@ -269,44 +304,84 @@ def manageSpecificList(someListId=None):
     elif DELETE and someListId:
         return deleteList(someListId,uid)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@app.route('/lists', methods = ['GET','POST', 'PUT'])
+@app.route('/lists/<someListId>/tasks', methods = ['GET', 'POST']):
+def manageTasksOfList(someListId):
     requestAsDic = request.form.to_dict()
-    result = request.form
-    jsonResponse = jsonify(result)
+    requestAsDic[completed] = False
     GET = request.method == 'GET'
     POST = request.method == 'POST'
-    PUT = request.method == 'PUT'
 
     if GET:
-        return jsonify(listAllListNames)
+        #currently returns empty list if id doesn't match, change to error?
+        return getTasksForList(someListId):
 
     elif POST:
         try:
-            insertList(requestAsDic)
+            validTaskDic(requestAsDic)
+            return jsonify(addTask(requestAsDic))
         except KeyError:
-            return jsonify({"error": "400 Error, you are missing one of name, age, or species"})
+            return jsonify(te400)
+        except ValueError
+            return jsonify(te409)
+
+    return jsonfy ({'response:this request is not supported'})
+
+## Todo Verify that this is a redundant route if all tasks have lists?
+@app.route('/lists/<someListId>/tasks/<someTaskId>', methods = ['GET', 'PUT', 'DELETE']):
+def manageSpecificTasksOfLists(someListId, someTaskId=None):
+    requestAsDic = request.form.to_dict()
+    GET = request.method == 'GET'
+    PUT = request.method == 'PUT'
+    DELETE = request.method == 'DELETE'
+
+    if someTaskId:
+
+        if GET:
+            return jsonify(getTaskWithId(someTaskId))
+
+        elif PUT:
+            try:
+                validTaskDic(requestAsDic)
+                return updateTask(someTaskId,requestAsDic)
+            except KeyError:
+                return jsonify(te400)
+
+        elif DELETE:
+            return jsonify(deleteTask(someTaskId))
+
+    return
+
+@app.route('/users', methods = ['POST'])
+def addUser():
+    requestAsDic = request.form.to_dict()
+
+    POST = request.method == 'POST'
+    try:
+        validUserDic(requestAsDic)
+        return createUser
+    except KeyError:
+        return jsonify(ue400)
+    except ValueError
+        return jsonify(ue409)
+
+@app.route('/users/<someUserId>', methods = ['GET','PUT', 'DELETE'])
+def manageUser(someUserId=None):
+    requestAsDic = request.form.to_dict()
+    GET = request.method == 'GET'
+    PUT = request.method == 'PUT'
+    DELETE = request.method == 'DELETE'
+
+    if someUserId:
+
+        if GET:
+            return jsonify(getUserWithId(someUserId))
+
+        elif PUT:
+            try:
+                validUserDic
+                return updateUser(someUserId, requestAsDic)
+            except KeyError:
+                return jsonify(te400)
+
+        elif DELETE:
+            deleteUser(someUserId)
