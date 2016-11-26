@@ -50,6 +50,7 @@ def storePets():
     storage.append(dic)
     db.collection_names(include_system_collections=False)
     print(collection.find_one())
+    # print(dict(collection.fine_one()))
     return jsonResponse
 
 
