@@ -5,6 +5,7 @@ from pymongo import MongoClient
 
 #Todo:
 ## makes all names consistent, camel or underscores
+## Setup Auth, getting relevant lists or tasks with auth
 
 # dbSetup
 client = MongoClient()
@@ -50,6 +51,8 @@ ue409 = {"error": "409 -- there is already a user with this name"}
 
 app = Flask(__name__)
 
+
+### TASK FUNCTIONS
 def getTasksForUser(someUserId):
     allTasksArray = list(allTasks.find({user_id:someUserId}))
     return allTasksArray
@@ -103,23 +106,7 @@ def validTaskDic(taskDic):
 
 
 
-def validListDic(listDic):
-    try:
-        id = listDic[selfId]
-        title = listDic[title]
-    except:
-        return KeyError
-
-
-def validUserDic(userDic):
-    try:
-        id = tasksDic[selfId]
-        userName = userDic[name]
-        #Phone number is optional feature
-    except:
-        raise KeyError
-
-
+### LIST FUNCTIONS
 
 
 def addList(listDic):
@@ -169,7 +156,14 @@ def getAllListNames(someUserId):
     else:
         return output
 
-## User-specific-methods
+def validListDic(listDic):
+    try:
+        id = listDic[selfId]
+        title = listDic[title]
+    except:
+        return KeyError
+
+### USER FUNCTIONS
 def getTasksForUser(someUserId):
     tasks = list(allTasks.find({user_id:someUserId}))
     if tasks:
@@ -213,20 +207,27 @@ def updateUser(someUserId, updatedUserDic):
     else:
         return ue404
 
-
-
+def validUserDic(userDic):
+    try:
+        id = tasksDic[selfId]
+        userName = userDic[name]
+        #Phone number is optional feature
+    except:
+        raise KeyError
 
 
 
 #########
 
 
-#Start with list operations with tasks, then go to allTask view etc.
+
 
 @app.route('/')
 def index(item=None):
     if item == None:
         return "Welcome!"
+
+### TASKS
 
 #Look into how UID affects this process
 @app.route('/tasks', methods = ['GET', 'POST'])
@@ -265,6 +266,7 @@ def manageSpecificTask(someTaskId=None):
         return jsonify(te404)
 
 
+### LISTS
 @app.route('/lists', methods = ['GET', 'POST']):
 def manageAllLists():
     requestAsDic = request.form.to_dict()
@@ -351,6 +353,8 @@ def manageSpecificTasksOfLists(someListId, someTaskId=None):
 
     return
 
+
+### USERS
 @app.route('/users', methods = ['POST'])
 def addUser():
     requestAsDic = request.form.to_dict()
