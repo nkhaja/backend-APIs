@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, json
 from flask_pymongo import PyMongo
 from pymongo import MongoClient
-
-
+import bcrypt
+from bson import ObjectId
+# from bson.objectid import ObjectId
 
 
 if __name__ == "__main__":
@@ -32,7 +33,18 @@ for s in stuff.find():
 print stuff.find_one({'name':"Nabil"})
 print stuff.find_one({'name':"charlie"})
 print stuff.find_one({'name':'shoop'})
+print "BREAK"
+print stuff.find_one({"_id": "5844edb53ef5cfa3336d3f6e"})
+print stuff.find_one({"_id": ObjectId("5844edb53ef5cfa3336d3f6e")})
 
 stuff.update_one({'name':"shoop"},{'$set':{'name':'jones', 'age':65}})
 print stuff.find_one({'name':'shoop'})
 print stuff.find_one({'name':'jones'})
+
+
+password = "cheese"
+hashed = bcrypt.hashpw(password, bcrypt.gensalt())
+
+print hashed
+hashed2 = bcrypt.hashpw(password, bcrypt.gensalt())
+print hashed2
