@@ -131,12 +131,12 @@ def addList(listDic):
     try:
         someId = listDic[selfId]
     except:
-        listDic[selfId] = None
+        if exists == None:
+            return str(allLists.insert_one(listDic).inserted_id)
+        else:
+            raise ValueError
+    raise ValueError
 
-    if listDic[selfId] == None and exists == None:
-        return allLists.insert_one(listDic).inserted_id
-    else:
-        raise ValueError
 
 def deletList(someListId, someUserId):
     checkForList = allLists.find_one({selfId:ObjectId(someListId)})
@@ -171,7 +171,7 @@ def getListWithId(someListId):
         return le404
 
 def getAllListNames(someUserId):
-    one = allLists.find_one({user_id:someUserId})
+    one = allLists.find_one({user_id:ObjectId(someUserId)})
     print(one)
     everything = allLists.find({user_id:someUserId},{title: 1})
     print list(everything)
@@ -338,6 +338,7 @@ def manageAllLists():
     requestAsDic = request.form.to_dict()
     uid = request.headers['uid']
     requestAsDic[user_id] = uid
+    print(requestAsDic[user_id])
 
 
     GET = request.method == 'GET'
