@@ -155,11 +155,12 @@ def addList(listDic):
     raise ValueError
 
 
-def deletList(someListId, someUserId):
+def deleteList(someListId, someUserId):
     checkForList = allLists.find_one({selfId:ObjectId(someListId), user_id:someUserId})
     if checkForList:
-        allLists.delete_one({list_id:someListId})
-        allTasks.delete({list_id:someListId, user_id:someUserId})
+        allLists.delete_one({selfId:ObjectId(someListId)})
+        allTasks.delete_many({list_id:someListId, user_id:someUserId})
+        checkForList[selfId] = str(checkForList[selfId])
         return checkForList
     else:
         return le404
@@ -422,7 +423,7 @@ def manageSpecificList(someListId=None):
             return le400
 
     elif DELETE and someListId:
-        return deleteList(someListId,uid)
+        return jsonify(deleteList(someListId,uid))
 
     return jsonify ({'response:this request is not supported'})
 
@@ -435,7 +436,7 @@ def manageTasksOfList(someListId):
 
     requestAsDic = request.form.to_dict()
     requestAsDic[completed] = False
-    uid = requestAsDic['uid']
+    uid = request.headers['uid']
     GET = request.method == 'GET'
     POST = request.method == 'POST'
 
@@ -445,7 +446,7 @@ def manageTasksOfList(someListId):
 
     elif POST:
         try:
-            validTaskDic(requestAsDic)
+            validTaskDic(requestAsDic, True)
             return jsonify(addTask(requestAsDic))
         except KeyError:
             return jsonify(te400)
