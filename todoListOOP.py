@@ -74,72 +74,89 @@ def getTasksForUser(someUserId):
     allTasksArray = list(allTasks.find({user_id:someUserId}))
     return allTasksArray
 
-def getTasksForList(someListId):
-    tasks = allTasks.find({list_id:someListId})
+def getTasksForList(someListId, someUserId):
+    tasks = allTasks.find({list_id:someListId, user_id:someUserId})
     if tasks:
         return list(tasks)
     else:
         return []
 
-def getTaskWithId(someTaskId):
-    task = allTasks.find_one({selfId:ObjectId(someTaskId)})
+def getTaskWithId(someTaskId, someUserId):
+    task = allTasks.find_one({selfId:ObjectId(someTaskId), user_id:someUserId})
     if task:
+        print(task)
+        task[selfId] = str(task[selfId])
         return task
     else:
         return te404
 
-def deleteTask(someTaskId):
-    task = allTasks.find_one({selfId:ObjectId(someTaskId)})
+def deleteTask(someTaskId, someUserId):
+    task = allTasks.find_one({selfId:ObjectId(someTaskId), user_id:someUserId})
     allTasks.delete_one({selfId:ObjectId(someTaskId)})
     if task:
+        task[selfId] = str(task[selfId])
         return task
     else:
         return te404
 
 def addTask(taskDic):
-    if allTasks.find_one({selfId:ObjectId(taskDic[selfId])}) == None:
-        return allTasks.insert_one(taskDic).inserted_id
-    else:
-        raise ValueError
+    try:
+        someId = taskDic[selfId]
+    except:
+        return str(allTasks.insert_one(taskDic).inserted_id)
+    raise ValueError
 
-def updateTask(task_id, newTask):
-    task = allTasks.find_one({selfId:ObjectId(someTaskId)})
+
+def updateTask(someTaskId, someUserId, newTask):
+    task = allTasks.find_one({selfId:ObjectId(someTaskId), user_id:someUserId})
+    #make sure user can't change objectID (screw themeselves)
+    #newTask.pop(selfid) ## think about possibly re-introducing this
     if task:
-        allTasks.update_one({selfId:someTaskId}, {'$set':newTask})
-        return task
+        print task
+        print('got inside task')
+        allTasks.update_one({selfId:ObjectId(someTaskId)}, {'$set':newTask})
+        #TODO protect against failed write on DB
+        print('updated task')
+        return newTask
     else:
+        print('reading t404')
         return te404
 
-def validTaskDic(taskDic):
+def validTaskDic(taskDic, new_task):
     try:
-        id = tasksDic[selfId]
+        # if not new_task:
+        #     print('task is not new')
+        #     id = tasksDic[selfId]
+
+        print('checking user id')
         uid = taskDic[user_id]
+        print('checking list id')
         lid = taskDic[list_id]
-        text = taskDic[text]
-        dueDate = task[due_date]
+        print('checking text')
+        text = taskDic['text']
+        print('returning from function')
+        return
+        # dueDate = task[due_date]
         # due_date is an optional field
     except:
+        print('task not valid')
         raise ValueError
+
 
 
 
 ### LIST FUNCTIONS
 
-
 def addList(listDic):
-    exists = allLists.find_one({name:listDic['title']})
     try:
         someId = listDic[selfId]
     except:
-        if exists == None:
-            return str(allLists.insert_one(listDic).inserted_id)
-        else:
-            raise ValueError
+        return str(allLists.insert_one(listDic).inserted_id)
     raise ValueError
 
 
 def deletList(someListId, someUserId):
-    checkForList = allLists.find_one({selfId:ObjectId(someListId)})
+    checkForList = allLists.find_one({selfId:ObjectId(someListId), user_id:someUserId})
     if checkForList:
         allLists.delete_one({list_id:someListId})
         allTasks.delete({list_id:someListId, user_id:someUserId})
@@ -147,10 +164,14 @@ def deletList(someListId, someUserId):
     else:
         return le404
 
-def updateListWithId(someListId, updatedList):
-    checkForList = allLists.find_one({selfId:ObjectId(someListId)})
+def updateListWithId(someListId, someUserId,  updatedList):
+    checkForList = allLists.find_one({selfId:ObjectId(someListId), user_id:someUserId})
+    theList = allLists.find_one({selfId:ObjectId(someListId)})
+    print(theList)
     if checkForList:
-        allLists.update_one({selfId:someListId}, {'$set':updatedList})
+        print('list was found')
+        allLists.update_one({selfId:ObjectId(someListId)}, {'$set':updatedList})
+        print('returning with updated list')
         return updatedList
     else:
         return le404
@@ -158,48 +179,40 @@ def updateListWithId(someListId, updatedList):
 
 def getListsForUser(someUserId):
     lists = list(allLists.find({user_id:someUserId}))
-
+    id_as_string(lists)
     for l in lists:
-        l['tasks'] = getTasksForList(l[selfId])
+        l['tasks'] = getTasksForList(l[selfId], someUserId)
     return lists
 
-def getListWithId(someListId):
-    someList = allLists.find({selfId:someListId})
-    if someList:
-        return someList
+def getListWithId(someListId, someUserId):
+    everyList = allLists.find({selfId:ObjectId(someListId),user_id:someUserId})
+
+    if everyList:
+        everyList = list(everyList)
+
+        id_as_string(everyList)
+        return everyList
     else:
         return le404
 
 def getAllListNames(someUserId):
-    one = allLists.find_one({user_id:ObjectId(someUserId)})
-    print(one)
-    everything = allLists.find({user_id:someUserId},{title: 1})
-    print list(everything)
-    output = []
-    for i in everything:
-        print('entered the loop')
-        output.append(i[title])
-    else:
-        return output
+    everything = list(allLists.find({user_id:someUserId},{title: 1}))
+    return [item['title'] for item in everything]
+
 
 def validListDic(listDic, new_list):
     try:
         someTitle = listDic[title]
         uid = listDic[user_id]
-        print('uid settled')
-        if new_list:
-            print('checking for id')
-            id = listDic[selfId]
-        print('returning')
         return
     except:
-        print('reading error')
         return KeyError
 
 
 ### USER FUNCTIONS
 def getTasksForUser(someUserId):
     tasks = list(allTasks.find({user_id:someUserId}))
+    id_as_string(tasks)
     if tasks:
         return tasks
     else:
@@ -271,6 +284,10 @@ def validUserDic(userDic, new_user):
     except:
         raise KeyError
 
+def id_as_string(someList):
+    for item in someList:
+        item[selfId] = str(item[selfId])
+
 
 
 #########
@@ -291,6 +308,9 @@ def manageAllTasks():
 
     requestAsDic = request.form.to_dict()
     requestAsDic[completed] = False
+    requestAsDic[user_id] = request.headers['uid']
+    uid = request.headers['uid']
+
     GET = request.method == 'GET'
     POST = request.method == 'POST'
 
@@ -300,33 +320,50 @@ def manageAllTasks():
 
     elif POST:
         try:
-            validTaskDic(requestAsDic)
+            validTaskDic(requestAsDic, True)
             addedTaskId = addTask(requestAsDic)
             #user must update local object with this id
-            return addedTaskId
+            return jsonify(addedTaskId)
         except KeyError:
             return jsonify(te400)
         except ValueError:
             return jsonify(te409)
 
+    return jsonify ({'response:this request is not supported'})
 
-@app.route('/tasks/<someTaskId>', methods = ['GET', 'DELETE'])
+
+
+@app.route('/tasks/<someTaskId>', methods = ['GET', 'DELETE','PUT'])
 def manageSpecificTask(someTaskId=None):
 
     if not authenticated(request.headers):
         return jsonify(authError)
 
     GET = request.method == 'GET'
+    PUT = request.method == 'PUT'
     DELETE = request.method == 'DELETE'
 
-    if GET and someTaskId != None:
-        return jsonify(getTaskWithId(someTaskId))
+    requestAsDic = request.form.to_dict()
+    uid = request.headers['uid']
 
-    elif DELETE and someTaskId != None:
-        return jsonify(deleteTask(someTaskId))
+
+    if GET and someTaskId:
+        return jsonify(getTaskWithId(someTaskId, uid))
+
+    elif PUT and someTaskId:
+        try:
+            validTaskDic(requestAsDic, False)
+            return jsonify(updateTask(someTaskId, uid, requestAsDic))
+        except:
+            print('reading outside error')
+            return jsonify(te400)
+
+    elif DELETE and someTaskId:
+        return jsonify(deleteTask(someTaskId, uid))
     else:
         return jsonify(te404)
 
+    return jsonify ({'response:this request is not supported'})
 
 ### LISTS
 @app.route('/lists', methods = ['GET', 'POST'])
@@ -358,6 +395,9 @@ def manageAllLists():
         except ValueError:
             return jsonify(le404)
 
+    return jsonify ({'response:this request is not supported'})
+
+
 @app.route('/lists/<someListId>', methods = ['GET', 'PUT', 'DELETE'])
 def manageSpecificList(someListId=None):
 
@@ -372,13 +412,20 @@ def manageSpecificList(someListId=None):
     uid = request.headers['uid']
 
     if GET and someListId:
-        return jsonify(getListWithId(someListId))
+        return jsonify(getListWithId(someListId, uid))
 
     elif PUT and someListId:
-        return jsonify(updateListWithId(someListId))
+        try:
+            validListDic(requestAsDic, False)
+            return jsonify(updateListWithId(someListId, uid, requestAsDic))
+        except KeyError:
+            return le400
 
     elif DELETE and someListId:
         return deleteList(someListId,uid)
+
+    return jsonify ({'response:this request is not supported'})
+
 
 @app.route('/lists/<someListId>/tasks', methods = ['GET', 'POST'])
 def manageTasksOfList(someListId):
@@ -388,12 +435,13 @@ def manageTasksOfList(someListId):
 
     requestAsDic = request.form.to_dict()
     requestAsDic[completed] = False
+    uid = requestAsDic['uid']
     GET = request.method == 'GET'
     POST = request.method == 'POST'
 
     if GET:
         #currently returns empty list if id doesn't match, change to error?
-        return getTasksForList(someListId)
+        return jsonify(getTasksForList(someListId,uid))
 
     elif POST:
         try:
@@ -404,7 +452,7 @@ def manageTasksOfList(someListId):
         except ValueError:
             return jsonify(te409)
 
-    return jsonfy ({'response:this request is not supported'})
+    return jsonify ({'response: this request is not supported'})
 
 ## Todo Verify that this is a redundant route if all tasks have lists?
 @app.route('/lists/<someListId>/tasks/<someTaskId>', methods = ['GET', 'PUT', 'DELETE'])
@@ -413,6 +461,7 @@ def manageSpecificTasksOfLists(someListId, someTaskId=None):
         return jsonify(authError)
 
     requestAsDic = request.form.to_dict()
+    uid = request.headers['uid']
     GET = request.method == 'GET'
     PUT = request.method == 'PUT'
     DELETE = request.method == 'DELETE'
@@ -420,17 +469,18 @@ def manageSpecificTasksOfLists(someListId, someTaskId=None):
     if someTaskId:
 
         if GET:
-            return jsonify(getTaskWithId(someTaskId))
+            return jsonify(getTaskWithId(someTaskId, uid))
 
         elif PUT:
             try:
-                validTaskDic(requestAsDic)
-                return updateTask(someTaskId,requestAsDic)
+                validTaskDic(requestAsDic, False)
+                print('got back from function')
+                return jsonify(updateTask(someTaskId, uid, requestAsDic))
             except KeyError:
                 return jsonify(te400)
 
         elif DELETE:
-            return jsonify(deleteTask(someTaskId))
+            return jsonify(deleteTask(someTaskId, uid))
     return
 
 

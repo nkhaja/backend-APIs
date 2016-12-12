@@ -36,10 +36,29 @@ print stuff.find_one({'name':'shoop'})
 print "BREAK"
 print stuff.find_one({"_id": "5844edb53ef5cfa3336d3f6e"})
 print stuff.find_one({"_id": ObjectId("5844edb53ef5cfa3336d3f6e")})
+someDict = dict()
+someDict['name'] = 'NabilE'
+someDict['age'] = 85
+print stuff.find_one({'name':'Nabil'})
+stuff.update_one({'name':'Nabil'},{'$set':{'name':'NabilE'}})
+print(stuff.find_one({'name':'NabileE'}))
+# stuff.update_one({'name':"shoop"},{'$set':{'name':'jones', 'age':65}})
+print stuff.find_one({'name':'shoop', 'age':55})
+print('works with multiple criteria!')
 
-stuff.update_one({'name':"shoop"},{'$set':{'name':'jones', 'age':65}})
-print stuff.find_one({'name':'shoop'})
+thing = {'name':'soe'}
+thing2 = dict()
+thing2['name'] = 'soe'
+print(thing2)
 print stuff.find_one({'name':'jones'})
+
+print stuff.insert_one({'name':'Amz', 'age':24, '_id': 45678})
+print stuff.find_one({'_id':45678})
+stuff.update_one({'_id':45678},{'$set':thing2})
+print stuff.find_one({'_id':45678})
+print stuff.find_one({'age':24})
+
+
 
 
 password = "cheese"
